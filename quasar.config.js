@@ -1,9 +1,13 @@
 // Configuration for your app
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file
 
+import path from 'node:path'
+import dotenv from 'dotenv'
+import dotenvExpand from 'dotenv-expand'
+
 import { defineConfig } from '#q-app/wrappers'
 
-export default defineConfig((/* ctx */) => {
+export default defineConfig((ctx) => {
   return {
     // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature
     // preFetch: true,
@@ -20,14 +24,13 @@ export default defineConfig((/* ctx */) => {
     extras: [
       // 'ionicons-v4',
       // 'mdi-v7',
-      // 'fontawesome-v6',
       // 'eva-icons',
       // 'themify',
       // 'line-awesome',
       // 'roboto-font-latin-ext', // this or either 'roboto-font', NEVER both!
-
-      'roboto-font', // optional, you are not bound to it
-      'material-icons', // optional, you are not bound to it
+      //'roboto-font', // optional, you are not bound to it
+      //'material-icons', // optional, you are not bound to it
+      'fontawesome-v6',
     ],
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#build
@@ -37,7 +40,24 @@ export default defineConfig((/* ctx */) => {
         node: 'node20',
       },
 
-      vueRouterMode: 'hash', // available values: 'hash', 'history'
+      // workaround to allow using multiple .env files
+      env: (async () => {
+        let myEnv = {}
+        // const dotenv = require('dotenv')
+        // const dotenvExpand = require('dotenv-expand')
+
+        myEnv = dotenv.config({
+          path: path.join(__dirname, `.env.${ctx.prod ? 'production' : 'development'}.local`),
+        })
+        dotenvExpand.expand(myEnv)
+        return myEnv
+      })(),
+
+      alias: {
+        'quasar/dist/quasar.css': path.resolve(__dirname, './src/css/quasar.css'),
+      },
+
+      vueRouterMode: 'history', // available values: 'hash', 'history'
       // vueRouterBase,
       // vueDevtools,
       // vueOptionsAPI: false,
@@ -52,6 +72,13 @@ export default defineConfig((/* ctx */) => {
       // minify: false,
       // polyfillModulePreload: true,
       // distDir
+
+      extendViteConf(viteConf) {
+        viteConf.envPrefix = 'TOTALLY_VIRUS_'
+        Object.assign(viteConf.resolve.alias, {
+          '@': path.join(__dirname, './src'),
+        })
+      },
 
       // extendViteConf (viteConf) {},
       // viteVuePluginOptions: {},
@@ -73,7 +100,8 @@ export default defineConfig((/* ctx */) => {
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#devserver
     devServer: {
       // https: true,
-      open: true, // opens browser window automatically
+      open: false, // opens browser window automatically
+      port: 3000,
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework

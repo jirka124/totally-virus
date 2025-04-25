@@ -1,102 +1,100 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
-      <q-toolbar>
-        <q-btn
-          flat
-          dense
-          round
-          icon="menu"
-          aria-label="Menu"
-          @click="toggleLeftDrawer"
-        />
-
-        <q-toolbar-title>
-          Quasar App
-        </q-toolbar-title>
-
-        <div>Quasar v{{ $q.version }}</div>
-      </q-toolbar>
-    </q-header>
-
-    <q-drawer
-      v-model="leftDrawerOpen"
-      show-if-above
-      bordered
-    >
-      <q-list>
-        <q-item-label
-          header
-        >
-          Essential Links
-        </q-item-label>
-
-        <EssentialLink
-          v-for="link in linksList"
-          :key="link.title"
-          v-bind="link"
-        />
-      </q-list>
-    </q-drawer>
-
-    <q-page-container>
-      <router-view />
-    </q-page-container>
-  </q-layout>
+  <div class="main-layout">
+    <header class="shadow-1"><h2>Totally Virus</h2></header>
+    <div class="cont-wrapp scroll">
+      <RouterView v-slot="{ Component }">
+        <transition name="fade" @before-enter="onBeforeEnter" @before-leave="onBeforeLeave">
+          <component :is="Component" />
+        </transition>
+      </RouterView>
+    </div>
+    <footer>
+      <button @click="router.push({ name: 'index' })" :class="{ active: route.name === 'index' }">
+        <i class="fa-solid fa-house"></i>
+      </button>
+      <button
+        @click="router.push({ name: 'scan-file' })"
+        :class="{ active: route.name === 'scan-file' }"
+      >
+        <i class="fa-solid fa-file"></i>
+      </button>
+      <button
+        @click="router.push({ name: 'scan-url' })"
+        :class="{ active: route.name === 'scan-url' }"
+      >
+        <i class="fa-solid fa-globe"></i>
+      </button>
+    </footer>
+  </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import EssentialLink from 'components/EssentialLink.vue'
+import { useRoute, useRouter } from 'vue-router'
 
-const linksList = [
-  {
-    title: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev'
-  },
-  {
-    title: 'Github',
-    caption: 'github.com/quasarframework',
-    icon: 'code',
-    link: 'https://github.com/quasarframework'
-  },
-  {
-    title: 'Discord Chat Channel',
-    caption: 'chat.quasar.dev',
-    icon: 'chat',
-    link: 'https://chat.quasar.dev'
-  },
-  {
-    title: 'Forum',
-    caption: 'forum.quasar.dev',
-    icon: 'record_voice_over',
-    link: 'https://forum.quasar.dev'
-  },
-  {
-    title: 'Twitter',
-    caption: '@quasarframework',
-    icon: 'rss_feed',
-    link: 'https://twitter.quasar.dev'
-  },
-  {
-    title: 'Facebook',
-    caption: '@QuasarFramework',
-    icon: 'public',
-    link: 'https://facebook.quasar.dev'
-  },
-  {
-    title: 'Quasar Awesome',
-    caption: 'Community Quasar projects',
-    icon: 'favorite',
-    link: 'https://awesome.quasar.dev'
-  }
-]
+const route = useRoute()
+const router = useRouter()
 
-const leftDrawerOpen = ref(false)
-
-function toggleLeftDrawer () {
-  leftDrawerOpen.value = !leftDrawerOpen.value
+function onBeforeEnter(el) {
+  el.style.position = 'relative'
+}
+function onBeforeLeave(el) {
+  el.style.position = 'absolute'
 }
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.6s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.main-layout {
+}
+header {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 6px;
+  background-color: #0097a7;
+}
+.cont-wrapp {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100vh - calc(44px + 60px));
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.cont-wrapp > * {
+  flex-grow: 1;
+  width: 100%;
+  padding: 24px 12px;
+}
+footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 1vw;
+  height: 60px;
+  padding: 0 6px;
+  background-color: #f6f6f6;
+  border-top: 2px solid #808080;
+}
+footer > button {
+  border: none;
+  cursor: pointer;
+}
+footer > button > i {
+  font-size: 30px;
+  color: #808080;
+}
+footer > button:active > i,
+footer > button.active > i {
+  color: #000;
+}
+</style>

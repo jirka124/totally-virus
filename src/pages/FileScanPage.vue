@@ -116,11 +116,13 @@ const handleSwipe = ({ ...event }) => {
 .no-file-grp {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 10px;
 }
 .yes-file-grp {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 6px;
 }
 button,

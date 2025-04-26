@@ -54,8 +54,16 @@ function onBeforeLeave(el) {
 }
 
 .main-layout {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--safe-area-inset-bottom, 0px);
+  padding-top: var(--safe-area-inset-top, 0px);
+  padding-left: var(--safe-area-inset-left, 0px);
+  padding-right: var(--safe-area-inset-right, 0px);
+  height: 100vh;
 }
 header {
+  flex: none;
   display: flex;
   align-items: center;
   height: 44px;
@@ -63,10 +71,11 @@ header {
   background-color: #0097a7;
 }
 .cont-wrapp {
+  flex: 1 1 auto;
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: calc(100vh - calc(44px + 60px));
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -76,6 +85,7 @@ header {
   padding: 24px 12px;
 }
 footer {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-around;

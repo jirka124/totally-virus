@@ -45,7 +45,7 @@ function onBeforeLeave(el) {
 <style scoped>
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.6s ease;
+  transition: opacity 0.2s ease;
 }
 
 .fade-enter-from,
@@ -61,6 +61,7 @@ function onBeforeLeave(el) {
   padding-left: var(--safe-area-inset-left, 0px);
   padding-right: var(--safe-area-inset-right, 0px);
   height: 100vh;
+  background-color: black;
 }
 header {
   flex: none;
@@ -78,6 +79,7 @@ header {
   width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
+  background-color: white;
 }
 .cont-wrapp > * {
   flex-grow: 1;

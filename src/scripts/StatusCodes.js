@@ -108,7 +108,7 @@ export const prepareDataSetFile = (jsonStr) => {
   }
 
   results.map((res) => {
-    res.attributes.date = new Date(res.attributes.date)
+    res.attributes.date = new Date(res.attributes.date * 1000)
     Object.values(res.attributes.results).map((res1) => {
       res1.outcome = resolveStatusFile(res1.category)
     })
@@ -129,7 +129,7 @@ export const prepareDataSetURL = (jsonStr) => {
   }
 
   results.map((res) => {
-    res.attributes.date = new Date(res.attributes.date)
+    res.attributes.date = new Date(res.attributes.date * 1000)
     Object.values(res.attributes.results).map((res1) => {
       res1.outcome = resolveStatusURL(res1.category)
     })

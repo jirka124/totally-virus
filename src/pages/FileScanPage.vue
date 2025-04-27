@@ -39,18 +39,20 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
-import { ref, reactive, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
+import { LocalNotifications } from '@capacitor/local-notifications'
 
 import StatusCircle from 'src/components/StatusCircle.vue'
 
-import DemoDataSet from 'src/scripts/DemoDataSetFile'
 import { prepareDataSetFile, resolveFileSize } from 'src/scripts/StatusCodes'
+import { scanFile, getReport } from 'src/services/virusTotal'
 
 const progressIndex = ref(0)
 const uploadedFile = ref(null)
 const router = useRouter()
 
-const reports = reactive(prepareDataSetFile(DemoDataSet))
+let reports = ref([])
 
 const dynamicProgressCtx = computed(() => {
   if (progressIndex.value === 1)
@@ -75,12 +77,68 @@ const dynamicProgressCtx = computed(() => {
     }
 })
 
-const performFileScan = () => {
-  // TODO: ...
+const sendNotify = async (scanIdentifier) => {
+  await LocalNotifications.schedule({
+    notifications: [
+      {
+        title: 'Totally Virus ready',
+        body: `Scanning of "${scanIdentifier}" done`,
+        id: Math.floor(Math.random() * 100000),
+        schedule: { at: new Date(Date.now() + 100) },
+      },
+    ],
+  })
+}
+
+const waitForCompletion = async (scanId) => {
+  const MAX_RETRIES = 10
+  const DELAY_MS = 20000
+
+  let attempt = 0
+
+  while (attempt < MAX_RETRIES) {
+    try {
+      const report = await getReport(scanId)
+      if (report.data.attributes.status === 'completed') return report
+    } catch (e) {
+      console.error(e)
+    }
+
+    await new Promise((res) => setTimeout(res, DELAY_MS))
+    attempt++
+  }
+
+  throw new Error('MAX try cap reached')
+}
+
+const scanFileFunc = async () => {
+  if (!uploadedFile.value) return
+  let report = null
+
+  try {
+    const scanResult = await scanFile(uploadedFile.value)
+    const scanId = scanResult.data.id
+
+    report = (await waitForCompletion(scanId)).data
+    report.meta = {}
+    report.meta.fileName = uploadedFile.value.name
+    report.meta.fileSizeB = uploadedFile.value.size
+  } catch (e) {
+    console.error(e)
+  }
+
+  return report
+}
+
+const performFileScan = async () => {
   progressIndex.value = 2
-  setTimeout(() => {
-    progressIndex.value = 3
-  }, 2000)
+
+  const newEntry = await scanFileFunc()
+  if (newEntry === null) return (progressIndex.value = 4)
+
+  await writeDataSet(newEntry)
+  await sendNotify(newEntry.meta.fileName)
+  progressIndex.value = 3
 }
 
 const handleFileUpload = (event) => {
@@ -91,8 +149,8 @@ const handleFileUpload = (event) => {
   uploadedFile.value = file
 }
 
-const handleNextStep = () => {
-  if (progressIndex.value === 1) performFileScan()
+const handleNextStep = async () => {
+  if (progressIndex.value === 1) await performFileScan()
   if (progressIndex.value === 3 || progressIndex.value === 4) progressIndex.value = 0
 }
 
@@ -100,6 +158,53 @@ const handleSwipe = ({ ...event }) => {
   if (event.direction === 'right') return router.push({ name: 'index' })
   if (event.direction === 'left') return router.push({ name: 'scan-url' })
 }
+
+const writeDataSet = async (newEntry) => {
+  const currentDataSet = await readDataSet()
+  let newDataSet = JSON.parse(currentDataSet)
+
+  try {
+    newDataSet.unshift(newEntry)
+
+    await Filesystem.writeFile({
+      path: 'history/file-history.json',
+      data: JSON.stringify(newDataSet),
+      directory: Directory.Data,
+      encoding: Encoding.UTF8,
+      recursive: true,
+    })
+
+    await syncUpHistory()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const readDataSet = async () => {
+  let contents = '[]'
+  try {
+    contents = (
+      await Filesystem.readFile({
+        path: 'history/file-history.json',
+        directory: Directory.Data,
+        encoding: Encoding.UTF8,
+      })
+    ).data
+  } catch (e) {
+    console.error(e)
+  }
+
+  return contents
+}
+
+const syncUpHistory = async () => {
+  const dataSet = await readDataSet()
+  reports.value = prepareDataSetFile(dataSet)
+}
+
+onMounted(async () => {
+  await syncUpHistory()
+})
 </script>
 
 <style scoped>

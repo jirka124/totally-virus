@@ -30,17 +30,19 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
-import { ref, reactive, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
+import { LocalNotifications } from '@capacitor/local-notifications'
 
 import StatusCircle from 'src/components/StatusCircle.vue'
 
-import DemoDataSet from 'src/scripts/DemoDataSetURL'
 import { prepareDataSetURL } from 'src/scripts/StatusCodes'
+import { scanUrl, getReport } from 'src/services/virusTotal'
 
 const progressIndex = ref(0)
 const urlVal = defineModel()
 const router = useRouter()
-const reports = reactive(prepareDataSetURL(DemoDataSet))
+let reports = ref([])
 
 const dynamicProgressCtx = computed(() => {
   if (progressIndex.value === 1)
@@ -60,22 +62,124 @@ const dynamicProgressCtx = computed(() => {
     }
 })
 
-const performURLScan = () => {
-  // TODO: ...
-  progressIndex.value = 1
-  setTimeout(() => {
-    progressIndex.value = 2
-  }, 2000)
+const sendNotify = async (scanIdentifier) => {
+  await LocalNotifications.schedule({
+    notifications: [
+      {
+        title: 'Totally Virus ready',
+        body: `Scanning of "${scanIdentifier}" done`,
+        id: Math.floor(Math.random() * 100000),
+        schedule: { at: new Date(Date.now() + 100) },
+      },
+    ],
+  })
 }
 
-const handleNextStep = () => {
-  if (progressIndex.value === 0) performURLScan()
+const waitForCompletion = async (scanId) => {
+  const MAX_RETRIES = 10
+  const DELAY_MS = 10000
+
+  let attempt = 0
+
+  while (attempt < MAX_RETRIES) {
+    try {
+      const report = await getReport(scanId)
+      if (report.data.attributes.status === 'completed') return report
+    } catch (e) {
+      console.error(e)
+    }
+
+    await new Promise((res) => setTimeout(res, DELAY_MS))
+    attempt++
+  }
+
+  throw new Error('MAX try cap reached')
+}
+
+const scanUrlFunc = async () => {
+  if (!urlVal.value) return
+  let report = null
+
+  try {
+    const scanResult = await scanUrl(urlVal.value)
+    const scanId = scanResult.data.id
+
+    report = (await waitForCompletion(scanId)).data
+    report.meta = {}
+    report.meta.URL = urlVal.value
+  } catch (e) {
+    console.error(e)
+  }
+
+  return report
+}
+
+const performURLScan = async () => {
+  progressIndex.value = 1
+
+  const newEntry = await scanUrlFunc()
+  if (newEntry === null) return (progressIndex.value = 3)
+
+  await writeDataSet(newEntry)
+  await sendNotify(newEntry.meta.URL)
+  progressIndex.value = 2
+}
+
+const handleNextStep = async () => {
+  if (progressIndex.value === 0) await performURLScan()
   if (progressIndex.value === 2 || progressIndex.value === 3) progressIndex.value = 0
 }
 
 const handleSwipe = ({ ...event }) => {
   if (event.direction === 'right') return router.push({ name: 'scan-file' })
 }
+
+const writeDataSet = async (newEntry) => {
+  const currentDataSet = await readDataSet()
+  let newDataSet = JSON.parse(currentDataSet)
+
+  try {
+    newDataSet.unshift(newEntry)
+
+    await Filesystem.writeFile({
+      path: 'history/url-history.json',
+      data: JSON.stringify(newDataSet),
+      directory: Directory.Data,
+      encoding: Encoding.UTF8,
+      recursive: true,
+    })
+
+    await syncUpHistory()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const readDataSet = async () => {
+  let contents = '[]'
+  try {
+    contents = (
+      await Filesystem.readFile({
+        path: 'history/url-history.json',
+        directory: Directory.Data,
+        encoding: Encoding.UTF8,
+      })
+    ).data
+  } catch (e) {
+    console.error(e)
+  }
+
+  return contents
+}
+
+const syncUpHistory = async () => {
+  const dataSet = await readDataSet()
+  reports.value = prepareDataSetURL(dataSet)
+}
+
+onMounted(async () => {
+  await syncUpHistory()
+})
 </script>
 
 <style scoped>

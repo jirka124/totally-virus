@@ -7,11 +7,13 @@
 
     <div class="res-meta">
       <p class="res-meta-title">File scan report</p>
-      <p class="res-meta-descriptor">{{ report.meta.fileName }} ({{ report.meta.fileSizeStr }})</p>
-      <p class="res-meta-date">{{ report.attributes.date.toLocaleDateString() }}</p>
+      <p class="res-meta-descriptor">
+        {{ report?.meta?.fileName || '' }} ({{ report?.meta?.fileSizeStr || '' }})
+      </p>
+      <p class="res-meta-date">{{ report?.attributes?.date?.toLocaleDateString() || '' }}</p>
     </div>
 
-    <div class="res-review">
+    <div class="res-review" v-if="report">
       <div class="res-review-total">
         <div class="res-review-total-head">
           <StatusCircle :status="report.meta.outcome" />
@@ -33,7 +35,7 @@
       </div>
     </div>
 
-    <div class="res-details">
+    <div class="res-details" v-if="report">
       <div
         class="res-detail"
         v-for="detail in detailReports"
@@ -52,32 +54,55 @@
 
 <script setup>
 import { useRouter, useRoute } from 'vue-router'
-import { reactive, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
 
 import StatusCircle from 'src/components/StatusCircle.vue'
 
-import DemoDataSet from 'src/scripts/DemoDataSetFile'
 import { prepareDataSetFile } from 'src/scripts/StatusCodes'
 
 const router = useRouter()
 const route = useRoute()
 
-const reports = reactive(prepareDataSetFile(DemoDataSet))
-const report = reports.find((rep) => rep.id === route.params.id) || null
-
-if (report === null) router.push({ name: 'scan-file' })
+const reports = ref([])
+const report = ref(null)
 
 const totalResGroups = computed(() => {
-  return report.attributes.stats.entries() || []
+  return report.value.attributes.stats.entries() || []
 })
 
 const detailReports = computed(() => {
-  return Object.values(report.attributes.results) || []
+  return Object.values(report.value.attributes.results) || []
 })
 
 const handleSwipe = ({ ...event }) => {
   if (event.direction === 'right') return router.push({ name: 'scan-file' })
 }
+
+const readDataSet = async () => {
+  let contents = '[]'
+  try {
+    contents = (
+      await Filesystem.readFile({
+        path: 'history/file-history.json',
+        directory: Directory.Data,
+        encoding: Encoding.UTF8,
+      })
+    ).data
+  } catch (e) {
+    console.error(e)
+  }
+
+  return contents
+}
+
+onMounted(async () => {
+  const dataSet = await readDataSet()
+  reports.value = prepareDataSetFile(dataSet)
+  report.value = reports.value.find((rep) => rep.id === route.params.id) || null
+
+  if (report.value === null) router.push({ name: 'scan-file' })
+})
 </script>
 
 <style scoped>

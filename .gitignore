@@ -31,3 +31,11 @@ yarn-error.log*
 
 # local .env files
 .env.local*
+
+# Ignoruj všechny .env.[environment].local soubory
+.env.*.local
+
+# ALE neignoruj .template soubory
+!.env.*.local.template
+
+/release

@@ -3,38 +3,25 @@
 This app has total virus in it...
 
 ## Install the dependencies
+
 ```bash
-yarn
-# or
 npm install
 ```
 
+### Fill in Virus Total API key (free/paid) inside .ENV files
+
+\* make files with .template stripped and use those
+
 ### Start the app in development mode (hot-code reloading, error reporting, etc.)
+
+\* in case fails on selected port, use the other one
+
 ```bash
-quasar dev
+npm run dev
 ```
-
-
-### Lint the files
-```bash
-yarn lint
-# or
-npm run lint
-```
-
-
-### Format the files
-```bash
-yarn format
-# or
-npm run format
-```
-
 
 ### Build the app for production
-```bash
-quasar build
-```
 
-### Customize the configuration
-See [Configuring quasar.config.js](https://v2.quasar.dev/quasar-cli-vite/quasar-config-js).
+```bash
+npm run build
+```
